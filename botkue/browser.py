@@ -1,6 +1,4 @@
-from sorter import skele
 from os.path import expanduser as euser
-from subprocess import Popen
 from time import sleep
 from bs4 import BeautifulSoup as bs
 from subprocess import Popen
@@ -24,6 +22,7 @@ home = euser('~')
 usern = ''
 passw = ''
 
+xp_login_gl = '//*[@id="gb_70"]'
 xp_usern_gl = ('//*[@id="identifierId"]',
 	 '//*[@id="identifierNext"]/content'
 )
@@ -31,8 +30,8 @@ xp_passw_gl = ('//*[@id="password"]/div[1]/div/div[1]/input',
 	 '//*[@id="passwordNext"]/content'
 )
 xp_dnlss_gl = ('//*[@id="docs-file-menu"]',
-	 '//*[@id=":5t"]/div/span[1]',
-	 '//html/body/div[46]/div[1]'
+	'//*[@id=":5t"]/div/span[1]',
+	'//html/body/div[46]/div[1]'
 )
 xp_imprt_gl = ('//*[@id="docs-file-menu"]',
 	'picker-frame',
@@ -64,8 +63,9 @@ class browser(object):
 		self.url = url
 		self.f = f
 
-	def login_google(self, xp_n, xp_nc, xp_p, xp_pc):
+	def login_google(self, login, xp_n, xp_nc, xp_p, xp_pc):
 		self.driver.get(self.url)
+		wdw(self.driver, 10).until(ec.visibility_of_element_located((By.XPATH, login))).click()
 		
 		usern_login = self.driver.find_element(By.XPATH, xp_n)
 		usern_login.send_keys(self.usern)
@@ -130,7 +130,6 @@ class browser(object):
 		sleep(1)
 		self.driver.switch_to.frame(self.driver.find_element(By.CLASS_NAME, cn1))
 		wdw(self.driver, 10).until(ec.visibility_of_element_located((By.XPATH, xp2))).click()
-		#wdw(self.driver, 10).until(ec.visibility_of_element_located((By.CLASS_NAME, xp3))).click()
 		Popen('%s/projects/botkue/botkue/file_select.sh' % (self.f), shell=True)
 
 		sleep(1)
@@ -155,7 +154,8 @@ class skele(object):
 			if self.name in names.get_text().replace('\n', ''):
 				name_return = names.get_text().replace('\n', '')
 				filt_return = name_return.replace(u'\xa0', u' ')
-				self.rank_list.append(filt_return.replace(self.name, ''))
+				tmp_test = filt_return.replace('General LexaCaptain', '')
+				self.rank_list.append(tmp_test.replace(self.name, ''))
 	
 	def store_ranks(self):
 		f = open('%s/.botkuerc/ranks/temp/%s' % (home, self.name.replace(' ', '')), 'a')
@@ -168,7 +168,6 @@ class skele(object):
 
 		Popen('tail -n +2 %s/.botkuerc/ranks/%s > %s/.botkuerc/ranks/temp/tmp_%s' % (
 			home, self.name.replace(' ', ''), home, self.name.replace(' ', '')), shell=True)
-		#if self.name == ranks[4] or self.name == ranks[6]:
 		sleep(.5)
 		Popen('cp %s/.botkuerc/ranks/temp/tmp_%s %s/.botkuerc/ranks/%s' % (
 			home, self.name.replace(' ', ''), home, self.name.replace(' ', '')), shell=True)
@@ -185,10 +184,10 @@ class skele(object):
 			for x in range(2, self.i + 2):
 				if self.name == ranks[0]:
 					wsa = wb.get_sheet_by_name('Friends')
-					wsa['A%s' % (x)] = f.readline()
+					wsa['A%s' % (x)] = f.readline().replace('\n', '')
 				else:
 					wsa = wb.get_sheet_by_name('%ss' % (self.name))
-					wsa['A%s' % (x)] = f.readline()	
+					wsa['A%s' % (x)] = f.readline().replace('\n', '')
 			wb.save('%s/.botkuerc/files/xlsx/final.xlsx' % (home))
 
 doit_rs = browser(usern, passw, urls[1], home)
@@ -196,7 +195,7 @@ doit_rs.login_rs(xp_login_rs, xp_usern_rs, xp_passw_rs)
 doit_rs.dl_rs(xp_dnlss_rs[0], xp_dnlss_rs[1], xp_dnlss_rs[2], xp_dnlss_rs[3])
 
 doit_google = browser(usern, passw, urls[0], home)
-doit_google.login_google(xp_usern_gl[0], xp_usern_gl[1], xp_passw_gl[0], xp_passw_gl[1])
+doit_google.login_google(xp_login_gl, xp_usern_gl[0], xp_usern_gl[1], xp_passw_gl[0], xp_passw_gl[1])
 doit_google.dl_ss(xp_dnlss_gl[0], xp_dnlss_gl[1], xp_dnlss_gl[2])
 
 for ea in ranks:
