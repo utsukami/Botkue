@@ -155,7 +155,7 @@ class data_parse(object):
 	def database_insert_names_ranks(self):
 		while self.i >= 0:
 			for names in soup.find_all('div', attrs={'class': 'left'}):
-				if self.name in names.get_text().replace('\n', ''):
+				if names.get_text().replace('\n', '').endswith(self.name):
 					if self.name == ranks[self.i]:
 						remove_newline = names.get_text().replace('\n', '')
 						fix_spaces = remove_newline.replace(u'\xa0', u' ')
