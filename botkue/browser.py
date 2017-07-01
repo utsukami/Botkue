@@ -1,3 +1,4 @@
+import sqlite3
 from os.path import expanduser as euser
 from time import sleep
 from bs4 import BeautifulSoup as bs
@@ -10,7 +11,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait as wdw
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.alert import Alert
 
 ranks = ('Not ranked', 'Recruit', 'Corporal', 'Sergeant', 'Lieutenant', 'Captain', 'General')
 
@@ -18,6 +18,9 @@ urls = ('https://docs.google.com/spreadsheets/d/1C3Hz78SaDe2F0w0NRfmbEWS_lUjtko6
 	'http://runescape.com/companion/comapp.ws'
 )
 home = euser('~')
+
+conn = sqlite3.connect('%s/.botkuerc/dwd.sqlite' % (home))
+c = conn.cursor()
 
 usern = ''
 passw = ''
@@ -50,7 +53,8 @@ xp_dnlss_rs = ('//*[@id="modal"]/div/div/div/div[1]/a[1]',
 	'//html/body/div[3]/div[1]/section/footer/a[2]'
 )
 
-wb = load_workbook('%s/.botkuerc/files/xlsx/ss_template.xlsx' % (home))
+workbook = load_workbook('%s/.botkuerc/files/xlsx/ss_template.xlsx' % (home))
+
 with open('%s/.botkuerc/files/data.html' % (home)) as fp:
 	soup = bs(fp, 'lxml')
 
@@ -141,54 +145,44 @@ class browser(object):
 		sleep(10)
 		self.driver.close()
 
-class skele(object):
+class data_parse(object):
 	
-	def __init__(self, name, f):
+	def __init__(self, name, home):
 		self.name = name
-		self.f = f + self.name
-		self.i = 0
-		self.rank_list = []
+		self.home = home
+		self.i = 6
 
-	def get_name(self):
-		for names in soup.find_all('div', attrs={'class': 'left'}):
-			if self.name in names.get_text().replace('\n', ''):
-				name_return = names.get_text().replace('\n', '')
-				filt_return = name_return.replace(u'\xa0', u' ')
-				tmp_test = filt_return.replace('General LexaCaptain', '')
-				self.rank_list.append(tmp_test.replace(self.name, ''))
-	
-	def store_ranks(self):
-		f = open('%s/.botkuerc/ranks/temp/%s' % (home, self.name.replace(' ', '')), 'a')
-		f.write(str('\n'.join(self.rank_list))+ '\n')
-		f.close()
+	def database_insert_names_ranks(self):
+		while self.i >= 0:
+			for names in soup.find_all('div', attrs={'class': 'left'}):
+				if self.name in names.get_text().replace('\n', ''):
+					if self.name == ranks[self.i]:
+						remove_newline = names.get_text().replace('\n', '')
+						fix_spaces = remove_newline.replace(u'\xa0', u' ')
+						remove_rank_title = fix_spaces.replace(self.name, '')
+						c.execute("INSERT OR IGNORE INTO member (name, rank_id) VALUES('%s', '%s')" % (
+							remove_rank_title, self.i + 1))
+			self.i -= 1
+		self.i = 6
 
-	def rm_dups(self):
-		Popen('sort -u %s/.botkuerc/ranks/temp/%s > %s/.botkuerc/ranks/%s' % (
-			home, self.name.replace(' ', ''), home, self.name.replace(' ', '')), shell=True) 
-
-		Popen('tail -n +2 %s/.botkuerc/ranks/%s > %s/.botkuerc/ranks/temp/tmp_%s' % (
-			home, self.name.replace(' ', ''), home, self.name.replace(' ', '')), shell=True)
-		sleep(.5)
-		Popen('cp %s/.botkuerc/ranks/temp/tmp_%s %s/.botkuerc/ranks/%s' % (
-			home, self.name.replace(' ', ''), home, self.name.replace(' ', '')), shell=True)
-		sleep(.5)
-		Popen('rm %s/.botkuerc/ranks/temp/tmp_%s' % (
-			home, self.name.replace(' ', '')), shell=True)
-
-	def get_num(self):
-		self.i = sum(1 for line in open(self.f.replace(' ', '')))
-		return self.i
-
-	def entry_ss(self):
-		with open('%s/.botkuerc/ranks/%s' % (home, self.name.replace(' ', ''))) as f:
-			for x in range(2, self.i + 2):
-				if self.name == ranks[0]:
-					wsa = wb.get_sheet_by_name('Friends')
-					wsa['A%s' % (x)] = f.readline().replace('\n', '')
+	def spreadsheet_insert_names_ranks(self, num):
+		while self.i >= 0:
+			c.execute("SELECT name FROM member WHERE rank_id='%s' ORDER BY name COLLATE NOCASE" % (self.i + 1))
+		
+			for names in c.fetchall():
+				if self.i == 0:
+					worksheet_active = workbook.get_sheet_by_name('Friends')
+					num += 1
+					worksheet_active['A%s' % (num + 1)] = names[0]
 				else:
-					wsa = wb.get_sheet_by_name('%ss' % (self.name))
-					wsa['A%s' % (x)] = f.readline().replace('\n', '')
-			wb.save('%s/.botkuerc/files/xlsx/final.xlsx' % (home))
+					num += 1
+					worksheet_active = workbook.get_sheet_by_name('%ss' % (ranks[self.i]))
+					worksheet_active['A%s' % (num + 1)] = names[0]
+			num = 0
+			self.i -= 1
+		workbook.save('%s/.botkuerc/files/xlsx/final.xlsx' % (self.home))
+		conn.commit()
+		conn.close()	
 
 doit_rs = browser(usern, passw, urls[1], home)
 doit_rs.login_rs(xp_login_rs, xp_usern_rs, xp_passw_rs)
@@ -198,12 +192,10 @@ doit_google = browser(usern, passw, urls[0], home)
 doit_google.login_google(xp_login_gl, xp_usern_gl[0], xp_usern_gl[1], xp_passw_gl[0], xp_passw_gl[1])
 doit_google.dl_ss(xp_dnlss_gl[0], xp_dnlss_gl[1], xp_dnlss_gl[2])
 
-for ea in ranks:
-	get_rank_ea = skele(ea, '%s/.botkuerc/ranks/' % (home))
-	get_rank_ea.get_name()
-	get_rank_ea.store_ranks()
-	get_rank_ea.rm_dups()
-	get_rank_ea.get_num()
-	get_rank_ea.entry_ss()
+for each in ranks:
+	start_data_parse = data_parse(each, home)
+	start_data_parse.database_insert_names_ranks()
+
+start_data_parse.spreadsheet_insert_names_ranks(0)
 
 doit_google.im_ss(xp_imprt_gl[0], xp_imprt_gl[2], xp_imprt_gl[3], xp_imprt_gl[4], xp_imprt_gl[1], xp_imprt_gl[5])
