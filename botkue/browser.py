@@ -98,11 +98,11 @@ class browser(object):
 	def dl_rs(self, xp1, xp2, xp3, xp4):
 		wdw(self.driver, 10).until(ec.visibility_of_element_located((By.XPATH, xp1))).click()
 		wdw(self.driver, 10).until(ec.visibility_of_element_located((By.XPATH, xp2))).click()
-		sleep(2)
+		sleep(4)
 		wdw(self.driver, 10).until(ec.visibility_of_element_located((By.XPATH, xp3))).click()
-		sleep(2)
+		sleep(4)
 		wdw(self.driver, 10).until(ec.visibility_of_element_located((By.XPATH, xp4))).click()
-		sleep(2)
+		sleep(4)
 		fi = open('%s/.botkuerc/files/data.html' % (self.f), 'w')
 		fi.write(self.driver.page_source)
 		fi.close()
@@ -121,8 +121,6 @@ class browser(object):
 
 		sleep(1)
 		Popen('mv %s/Downloads/*xlsx %s/.botkuerc/files/xlsx/ss_template.xlsx' % (self.f, self.f), shell=True)
-		sleep(1)
-		Popen('rm %s/Downloads/*xlsx' % (self.f), shell=True)
 		
 	def im_ss(self, xp1, xp2, xp3, xp4, cn1, nm1):
 		wdw(self.driver, 10).until(ec.visibility_of_element_located((By.XPATH, xp1))).click()
@@ -151,7 +149,19 @@ class data_parse(object):
 		self.name = name
 		self.home = home
 		self.i = 6
+		self.current_ranks = []
+		self.updated_ranks = []
 
+
+	def get_current_names_ranks(self):
+		count = len(ranks)
+		for nums in range(1, count + 1):
+			c.execute("SELECT name, rank_id FROM member WHERE rank_id='%s'" % (count))
+			for data in c.fetchall():
+				if count in data[0:2]:
+					self.current_ranks.append(data[0:2])
+			count -= 1
+	
 	def database_insert_names_ranks(self):
 		while self.i >= 0:
 			for names in soup.find_all('div', attrs={'class': 'left'}):
@@ -160,10 +170,19 @@ class data_parse(object):
 						remove_newline = names.get_text().replace('\n', '')
 						fix_spaces = remove_newline.replace(u'\xa0', u' ')
 						remove_rank_title = fix_spaces.replace(self.name, '')
+						with_num = remove_rank_title, self.i + 1
+						self.updated_ranks.append(with_num)
 						c.execute("INSERT OR IGNORE INTO member (name, rank_id) VALUES('%s', '%s')" % (
 							remove_rank_title, self.i + 1))
 			self.i -= 1
+		conn.commit()
 		self.i = 6
+
+	def update_names_ranks(self):
+		for names in self.updated_ranks:
+			if names not in self.current_ranks:
+				c.execute("UPDATE member SET rank_id='%s' WHERE name='%s'" % (names[1], names[0]))
+				conn.commit()
 
 	def spreadsheet_insert_names_ranks(self, num):
 		while self.i >= 0:
@@ -175,8 +194,8 @@ class data_parse(object):
 					num += 1
 					worksheet_active['A%s' % (num + 1)] = names[0]
 				else:
-					num += 1
 					worksheet_active = workbook.get_sheet_by_name('%ss' % (ranks[self.i]))
+					num += 1
 					worksheet_active['A%s' % (num + 1)] = names[0]
 			num = 0
 			self.i -= 1
@@ -192,10 +211,12 @@ doit_google = browser(usern, passw, urls[0], home)
 doit_google.login_google(xp_login_gl, xp_usern_gl[0], xp_usern_gl[1], xp_passw_gl[0], xp_passw_gl[1])
 doit_google.dl_ss(xp_dnlss_gl[0], xp_dnlss_gl[1], xp_dnlss_gl[2])
 
-for each in ranks:
-	start_data_parse = data_parse(each, home)
-	start_data_parse.database_insert_names_ranks()
 
+for each in ranks:
+	start_data_parse = data_parse(each, home)	
+	start_data_parse.database_insert_names_ranks()
+	start_data_parse.get_current_names_ranks()
+	start_data_parse.update_names_ranks()
 start_data_parse.spreadsheet_insert_names_ranks(0)
 
 doit_google.im_ss(xp_imprt_gl[0], xp_imprt_gl[2], xp_imprt_gl[3], xp_imprt_gl[4], xp_imprt_gl[1], xp_imprt_gl[5])
