@@ -132,7 +132,7 @@ class browser(object):
 		sleep(1)
 		self.driver.switch_to.frame(self.driver.find_element(By.CLASS_NAME, cn1))
 		wdw(self.driver, 10).until(ec.visibility_of_element_located((By.XPATH, xp2))).click()
-		Popen('%s/projects/botkue/botkue/file_select.sh' % (self.f), shell=True)
+		Popen('%s/projects/botkue/tests/file_select.sh' % (self.f), shell=True)
 
 		sleep(1)
 		wdw(self.driver, 10).until(ec.visibility_of_element_located((By.XPATH, xp4))).click()
@@ -186,22 +186,22 @@ class data_parse(object):
 
 	def spreadsheet_insert_names_ranks(self, num):
 		while self.i >= 0:
-			c.execute("SELECT name FROM member WHERE rank_id='%s' ORDER BY name COLLATE NOCASE" % (self.i + 1))
+			c.execute("SELECT name, date_ranked FROM member WHERE rank_id='%s' ORDER BY name COLLATE NOCASE" % (self.i + 1))
 		
 			for names in c.fetchall():
 				if self.i == 0:
 					worksheet_active = workbook.get_sheet_by_name('Friends')
 					num += 1
 					worksheet_active['A%s' % (num + 1)] = names[0]
+					worksheet_active['B%s' % (num + 1)] = names[1]
 				else:
 					worksheet_active = workbook.get_sheet_by_name('%ss' % (ranks[self.i]))
 					num += 1
 					worksheet_active['A%s' % (num + 1)] = names[0]
+					worksheet_active['B%s' % (num + 1)] = names[1]
 			num = 0
 			self.i -= 1
-		workbook.save('%s/.botkuerc/files/xlsx/final.xlsx' % (self.home))
-		conn.commit()
-		conn.close()	
+			workbook.save('%s/.botkuerc/files/xlsx/final.xlsx' % (self.home))
 
 doit_rs = browser(usern, passw, urls[1], home)
 doit_rs.login_rs(xp_login_rs, xp_usern_rs, xp_passw_rs)
@@ -209,8 +209,7 @@ doit_rs.dl_rs(xp_dnlss_rs[0], xp_dnlss_rs[1], xp_dnlss_rs[2], xp_dnlss_rs[3])
 
 doit_google = browser(usern, passw, urls[0], home)
 doit_google.login_google(xp_login_gl, xp_usern_gl[0], xp_usern_gl[1], xp_passw_gl[0], xp_passw_gl[1])
-doit_google.dl_ss(xp_dnlss_gl[0], xp_dnlss_gl[1], xp_dnlss_gl[2])
-
+#doit_google.dl_ss(xp_dnlss_gl[0], xp_dnlss_gl[1], xp_dnlss_gl[2])
 
 for each in ranks:
 	start_data_parse = data_parse(each, home)	
