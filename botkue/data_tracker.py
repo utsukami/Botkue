@@ -6,20 +6,20 @@ from os.path import expanduser as euser
 ranks = ('Smiley', 'Recruit', 'Corporal', 'Sergeant', 'Lieutenant', 'Captain', 'General')
 home = euser('~')
 
-conn = sqlite3.connect('{}/testing/yep.sqlite'.format(home))
+conn = sqlite3.connect('{}/databases/main.sqlite'.format(home))
 c = conn.cursor()
 
-fonn = sqlite3.connect('{}/testing/lost_ranks.sqlite'.format(home))
+fonn = sqlite3.connect('{}/databases/lost.sqlite'.format(home))
 f = fonn.cursor()
 
 arg_name = str(sys.argv[1])
 arg_rank = int(sys.argv[2])
 
-log_file = '{}/rank_tracker.log'.format(home)
+log_file = '{}/logs/main.log'.format(home)
 
 logging.basicConfig(filename=log_file,level=logging.INFO,
         format='{}'.format(
-            '%(asctime)s - %(levelname)s - %(message)s'), 
+            '[%(asctime)s] %(message)s'),
         datefmt='{}'.format(
             '%Y-%m-%d %H:%M:%S')
 )
@@ -50,14 +50,14 @@ def rank_tracker(name, rank_num):
                     if (match_order < int(data[1]) 
                             and match_order >= 1):
                         
-                        logging.info('TYPE: {} - ACTION: {} - NAME: {} - STATUS: {} --> {}'.format(
-                            'Rank', 'Decrease', data[0], ranks[data[1] - 1], ranks[rank_num]))
+                        logging.info('ACTION: {} | NAME: {} | STATUS: {}'.format(
+                            'Decrease', data[0], ranks[rank_num]))
                     
                     elif (match_order > int(data[1]) 
                             and match_order <= 7):
                         
-                        logging.info('TYPE: {} - ACTION: {} - NAME: {} - STATUS: {} --> {}'.format(
-                            'Rank', 'Increase', data[0], ranks[data[1] - 1], ranks[rank_num]))
+                        logging.info('ACTION: {} | NAME: {} | STATUS: {}'.format(
+                            'Increase', data[0], ranks[rank_num]))
                    
                     conn.commit()
                 
@@ -67,8 +67,8 @@ def rank_tracker(name, rank_num):
                     conn.commit()
 
             elif match_order == 0:
-                logging.info('TYPE: {} - ACTION: {} - NAME: {} - STATUS: {}'.format(
-                    'Send', 'Append', data[0], 'Sent to rank_lost'))
+                logging.info('ACTION: {} | NAME: {} | STATUS: {}'.format(
+                    'Removed', data[0], 'Inactive'))
                 
                 f.execute("INSERT INTO member ({}) VALUES('{}', '{}', '{}', '{}')".format(
                     'name, rank_id, last_seen, reason', data[0],
@@ -84,8 +84,8 @@ def rank_tracker(name, rank_num):
             c.execute("INSERT OR IGNORE INTO member ({}) VALUES('{}', '{}', '{}')".format(
                 "name, rank_id, last_seen", name, rank_num + 1, format_time))
             conn.commit()
-            logging.info('TYPE: {} - ACTION: {} - NAME: {} - STATUS: {}'.format(
-                'Rank', 'Append', name, ranks[rank_num]))
+            logging.info('ACTION: {} | NAME: {} | STATUS: {}'.format(
+                'Append', name, ranks[rank_num]))
         else:
             pass
 
