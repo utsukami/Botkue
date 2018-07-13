@@ -17,6 +17,7 @@ except ImportError:
 SCOPES = 'https://www.googleapis.com/auth/spreadsheets'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'OSRS CC Rank Tracker'
+home_dir = os.path.expanduser('~')
 
 def get_credentials():
     home_dir = os.path.expanduser('~')
@@ -48,7 +49,7 @@ def main():
 
     sheet_id = '1C3Hz78SaDe2F0w0NRfmbEWS_lUjtko6Lv4P4-bpNQzI'
 
-    cxn = sqlite3.connect('/home/kokkue/testing/yep.sqlite')
+    cxn = sqlite3.connect('{}/databases/main.sqlite'.format(home_dir))
     c = cxn.cursor()
     count = len(ranks)
 
@@ -66,8 +67,8 @@ def main():
             while get_leng >= 1:
                 get_leng -= 1
 
-                c.execute("UPDATE member SET notes='{}' WHERE name='{}'".format(
-                    resp_notes['valueRanges'][1]['values'][get_leng][0],
+                c.execute("UPDATE {} SET notes=? WHERE name=?".format('member'),
+                    (resp_notes['valueRanges'][1]['values'][get_leng][0],
                     resp_notes['valueRanges'][0]['values'][get_leng][0]))
 
             cxn.commit()
