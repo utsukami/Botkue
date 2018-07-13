@@ -3,16 +3,16 @@ from os.path import expanduser as euser
 import datetime
 home = euser('~')
 
-conn = sqlite3.connect('{}/testing/aoeu.sqlite'.format(home))
+conn = sqlite3.connect('{}/databases/main.sqlite'.format(home))
 c = conn.cursor()
 
-fonn = sqlite3.connect('{}/testing/lost_ranks.sqlite'.format(home))
+fonn = sqlite3.connect('{}/databases/lost.sqlite'.format(home))
 f = fonn.cursor()
 
 current_time_utc = datetime.datetime.utcnow()
 format_time = current_time_utc.strftime("%Y-%m-%d")
 
-def remove_ranks():
+def remove_ranks(limiter, rank):
     c.execute("SELECT name, rank_id, last_seen FROM member")
     
     for data in c.fetchall():
@@ -25,9 +25,11 @@ def remove_ranks():
         
         is_inact = datetime.datetime(int(get_year), int(get_month), int(get_day))
         
-        if (current_time_utc - is_inact).days > 20:
+        if (current_time_utc - is_inact).days > limiter and data[1] <= rank:
             f.execute("INSERT OR IGNORE INTO member (name, rank_id, last_seen, reason) VALUES('{}', '{}', '{}', '{}')".format(data[0], data[1], data[2], 'Inactive'))
             fonn.commit()
             c.execute("DELETE FROM member WHERE name='{}'".format(data[0]))
             conn.commit()
-remove_ranks()
+
+remove_ranks(int(30), int(3))
+remove_ranks(int(60), int(4))
