@@ -1,35 +1,43 @@
-import sqlite3
-from os.path import expanduser as euser
-import datetime
-home = euser('~')
+import sql_cmds
+from datetime import datetime
+from os.path import expanduser
+from rank_logger import rank_logger
+from sqlite3 import connect
 
-conn = sqlite3.connect('{}/databases/main.sqlite'.format(home))
-c = conn.cursor()
+home = expanduser('~')
+curr_utc = datetime.utcnow()
 
-fonn = sqlite3.connect('{}/databases/lost.sqlite'.format(home))
-f = fonn.cursor()
+conn_main = connect('{}/tmp/main.sqlite'.format(home))
+conn_lost = connect('{}/tmp/lost.sqlite'.format(home))
+cdb = conn_main.cursor()
 
-current_time_utc = datetime.datetime.utcnow()
-format_time = current_time_utc.strftime("%Y-%m-%d")
 
 def remove_ranks(limiter, rank):
-    c.execute("SELECT name, rank_id, last_seen FROM member")
-    
-    for data in c.fetchall():
+    cdb.execute("SELECT name, rank_id, last_seen, notes FROM member")
+
+    for data in cdb.fetchall():
         find_year = data[2].index('-')
         find_day = data[2].rindex('-')
 
         get_year = data[2][:find_year]
-        get_day = data[2][int(find_day + 1 ):]
+        get_day = data[2][int(find_day + 1):]
         get_month = data[2][int(find_year + 1):find_day]
-        
-        is_inact = datetime.datetime(int(get_year), int(get_month), int(get_day))
-        
-        if (current_time_utc - is_inact).days > limiter and data[1] <= rank:
-            f.execute("INSERT OR IGNORE INTO member (name, rank_id, last_seen, reason) VALUES('{}', '{}', '{}', '{}')".format(data[0], data[1], data[2], 'Inactive'))
-            fonn.commit()
-            c.execute("DELETE FROM member WHERE name='{}'".format(data[0]))
-            conn.commit()
+
+        full_afk = (curr_utc - datetime(
+            int(get_year), int(get_month), int(get_day))
+        ).days
+
+        if (full_afk >= limiter
+                and data[1] <= rank):
+            ldb = conn_lost.cursor()
+
+            rank_logger(data[0], data[1], "Inactive")
+            sql_cmds.append_old(data[0], data[1], data[2], data[3], ldb)
+            sql_cmds.delete_rank(data[0], cdb)
+
+            conn_lost.commit()
+            conn_main.commit()
+
 
 remove_ranks(int(30), int(3))
 remove_ranks(int(60), int(4))
