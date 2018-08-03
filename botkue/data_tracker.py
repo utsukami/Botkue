@@ -14,7 +14,7 @@ cdb = conn_main.cursor()
 
 
 def check_exists(name, database):
-    sql_cmds.select_membs(name, database)
+    sql_cmds.select_mem(name, database)
 
     try:
         return database.fetchall()[0]
@@ -26,41 +26,47 @@ def check_exists(name, database):
 def rank_tracker(name, rank_num):
     data = check_exists(name, cdb)
 
-    if data:
-        current_rank = int(data[1]) - 1
+    if 0 <= rank_num <= 6:
+        if data:
+            current_rank = int(data[1]) - 1
 
-        if 0 <= rank_num <= 6:
-            if rank_num < current_rank:
-                rank_logger(data[0], rank_num, "Decrease")
+            if (rank_num < current_rank
+                    or rank_num > current_rank):
+
+                if rank_num < current_rank:
+                    rank_logger(data[0], rank_num, "Decrease")
+
+                else:
+                    rank_logger(data[0], rank_num, "Increase")
+
                 sql_cmds.change_curr(data[0], rank_num, format_date, cdb)
 
-            elif rank_num > current_rank:
-                rank_logger(data[0], rank_num, "Increase")
-                sql_cmds.change_curr(data[0], rank_num, format_date, cdb)
-
-            elif rank_num == current_rank:
+            else:
                 sql_cmds.keep_curr(data[0], format_date, cdb)
 
-    elif not data:
-        ldb = conn_lost.cursor()
-        check_lost = check_exists(name, ldb)
+        else:
+            ldb = conn_lost.cursor()
+            check_lost = check_exists(name, ldb)
 
-        if not check_lost:
-            if 0 <= rank_num <= 6:
-                rank_logger(name, rank_num, "Append")
-                sql_cmds.append_new(name, rank_num, format_date, cdb)
-
-        elif check_lost:
-            if 0 <= rank_num <= 6:
+            if check_lost:
                 rank_logger(name, rank_num, "Restore")
-                sql_cmds.append_old(
+                sql_cmds.restore_old(
                     name, rank_num, format_date, check_lost[3], cdb
                 )
 
                 sql_cmds.delete_rank(name, ldb)
                 conn_lost.commit()
 
-    conn_main.commit()
+            else:
+                if rank_num >= 1:
+                    rank_logger(name, rank_num, "Append")
+                    sql_cmds.append_unt(name, rank_num, format_date, cdb)
+
+                else:
+                    rank_logger(name, rank_num, "Addition")
+                    sql_cmds.append_new(name, rank_num, format_date, cdb)
+
+        conn_main.commit()
 
 
 rank_tracker(str(argv[1]), int(argv[2]))

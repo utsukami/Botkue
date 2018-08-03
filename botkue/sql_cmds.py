@@ -12,7 +12,7 @@ def keep_curr(name, date, database):
     )
 
 
-def append_old(name, rank, date, notes, database):
+def restore_old(name, rank, date, notes, database):
     database.execute(
         "INSERT OR IGNORE INTO member "
         "(name, rank_id, last_seen, date_rank, notes) VALUES(?,?,?,?,?)",
@@ -28,13 +28,21 @@ def append_new(name, rank, date, database):
     )
 
 
+def append_unt(name, rank, date, database):
+    database.execute(
+        "INSERT OR IGNORE INTO member "
+        "(name, rank_id, last_seen) VALUES(?,?,?)",
+        (name, rank + 1, date)
+    )
+
+
 def delete_rank(name, database):
     database.execute(
         "DELETE FROM member WHERE name=?", (name,)
     )
 
 
-def select_membs(name, database):
+def select_mem(name, database):
     database.execute(
         "SELECT name, rank_id, last_seen, notes FROM member "
         "WHERE name=?", (name,)

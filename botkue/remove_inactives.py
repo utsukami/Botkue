@@ -16,8 +16,8 @@ def remove_ranks(limiter, rank):
     cdb.execute("SELECT name, rank_id, last_seen, notes FROM member")
 
     for data in cdb.fetchall():
-        find_year = data[2].index('-')
-        find_day = data[2].rindex('-')
+        find_year = data[2].index("-")
+        find_day = data[2].rindex("-")
 
         get_year = data[2][:find_year]
         get_day = data[2][int(find_day + 1):]
@@ -32,7 +32,7 @@ def remove_ranks(limiter, rank):
             ldb = conn_lost.cursor()
 
             rank_logger(data[0], data[1], "Inactive")
-            sql_cmds.append_old(data[0], data[1], data[2], data[3], ldb)
+            sql_cmds.restore_old(data[0], data[1], data[2], data[3], ldb)
             sql_cmds.delete_rank(data[0], cdb)
 
             conn_lost.commit()

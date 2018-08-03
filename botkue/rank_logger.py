@@ -7,8 +7,8 @@ log_file = '{}/tmp/tracker.log'.format(home)
 logging.basicConfig(
     filename=log_file,
     level=logging.INFO,
-    format="{}".format("[%(asctime)s] %(message)s"),
-    datefmt="{}".format("%Y-%m-%d %H:%M:%S")
+    format="[%(asctime)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
 )
 
 
