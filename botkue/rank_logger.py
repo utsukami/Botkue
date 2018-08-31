@@ -1,8 +1,8 @@
 import logging
 from os.path import expanduser
 
-home = expanduser('~')
-log_file = '{}/tmp/tracker.log'.format(home)
+home = expanduser("~")
+log_file = "{}/logs/tracker.log".format(home)
 
 logging.basicConfig(
     filename=log_file,
@@ -13,12 +13,7 @@ logging.basicConfig(
 
 
 def rank_logger(name, rank, action):
-    ranks = (
-        "Smiley", "Recruit", "Corporal", "Sergeant",
-        "Lieutenant", "Captain", "General"
-    )
-
     logging.info(
-        "ACTION: {} | NAME: {} | STATUS: {}"
-        .format(action, name, ranks[rank])
+        "STATUS: {} | RANK: {} | NAME: {}"
+        .format(action, rank, name)
     )
