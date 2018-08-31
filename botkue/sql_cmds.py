@@ -1,3 +1,5 @@
+from datetime import datetime
+
 def change_curr(name, rank, date, database):
     database.execute(
         "UPDATE member SET "
@@ -47,3 +49,16 @@ def select_mem(name, database):
         "SELECT name, rank_id, last_seen, notes FROM member "
         "WHERE name=?", (name,)
     )
+
+
+def verify_date(check):
+    find_year = check[2].index("-")
+    find_day = check[2].rindex("-")
+
+    get_year = check[2][:find_year]
+    get_day = check[2][int(find_day + 1):]
+    get_month = check[2][int(find_year + 1):find_day]
+
+    return (datetime.utcnow() - datetime(
+        int(get_year), int(get_month), int(get_day))
+    ).days

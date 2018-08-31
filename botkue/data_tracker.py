@@ -1,3 +1,4 @@
+
 import sql_cmds
 from datetime import datetime
 from os.path import expanduser
@@ -5,11 +6,11 @@ from rank_logger import rank_logger
 from sqlite3 import connect
 from sys import argv
 
-home = expanduser('~')
+home = expanduser("~")
 format_date = datetime.utcnow().strftime("%Y-%m-%d")
 
-conn_main = connect('{}/tmp/main.sqlite'.format(home))
-conn_lost = connect("{}/tmp/lost.sqlite".format(home))
+conn_main = connect("{}/databases/main.sqlite".format(home))
+conn_lost = connect("{}/databases/lost.sqlite".format(home))
 cdb = conn_main.cursor()
 
 
@@ -28,6 +29,7 @@ def rank_tracker(name, rank_num):
 
     if 0 <= rank_num <= 6:
         if data:
+            needs_update = sql_cmds.verify_date(data)
             current_rank = int(data[1]) - 1
 
             if (rank_num < current_rank
@@ -41,8 +43,9 @@ def rank_tracker(name, rank_num):
 
                 sql_cmds.change_curr(data[0], rank_num, format_date, cdb)
 
-            else:
+            elif needs_update > 0:
                 sql_cmds.keep_curr(data[0], format_date, cdb)
+                rank_logger(data[0], rank_num, "Active")
 
         else:
             ldb = conn_lost.cursor()
