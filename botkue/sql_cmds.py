@@ -14,11 +14,11 @@ def keep_curr(name, date, database):
     )
 
 
-def restore_old(name, rank, date, notes, database):
+def restore_old(name, rank, seen, date, notes, ally, prev, database):
     database.execute(
         "INSERT OR IGNORE INTO member "
-        "(name, rank_id, last_seen, date_rank, notes) VALUES(?,?,?,?,?)",
-        (name, rank + 1, date, date, notes)
+        "(name, rank_id, last_seen, date_rank, notes, is_added, prev_name) "
+        "VALUES(?,?,?,?,?,?,?)", (name, rank + 1, seen, date, notes, ally, prev,)
     )
 
 
@@ -46,18 +46,17 @@ def delete_rank(name, database):
 
 def select_mem(name, database):
     database.execute(
-        "SELECT name, rank_id, last_seen, notes FROM member "
-        "WHERE name=?", (name,)
+        "SELECT * FROM member WHERE name=?", (name,)
     )
 
 
 def verify_date(check):
-    find_year = check[2].index("-")
-    find_day = check[2].rindex("-")
+    find_year = check[3].index("-")
+    find_day = check[3].rindex("-")
 
-    get_year = check[2][:find_year]
-    get_day = check[2][int(find_day + 1):]
-    get_month = check[2][int(find_year + 1):find_day]
+    get_year = check[3][:find_year]
+    get_day = check[3][int(find_day + 1):]
+    get_month = check[3][int(find_year + 1):find_day]
 
     return (datetime.utcnow() - datetime(
         int(get_year), int(get_month), int(get_day))
