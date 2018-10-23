@@ -25,27 +25,28 @@ def check_exists(name, database):
 
 
 def rank_tracker(name, rank_num):
+    name = name.replace(u"\xa0", u" ")
     data = check_exists(name, cdb)
 
     if 0 <= rank_num <= 6:
         if data:
             needs_update = sql_cmds.verify_date(data)
-            current_rank = int(data[1]) - 1
+            current_rank = int(data[2]) - 1
 
             if (rank_num < current_rank
                     or rank_num > current_rank):
 
                 if rank_num < current_rank:
-                    rank_logger(data[0], rank_num, "Decrease")
+                    rank_logger(data[1], rank_num, "Decrease")
 
                 else:
-                    rank_logger(data[0], rank_num, "Increase")
+                    rank_logger(data[1], rank_num, "Increase")
 
-                sql_cmds.change_curr(data[0], rank_num, format_date, cdb)
+                sql_cmds.change_curr(data[1], rank_num, format_date, cdb)
 
             elif needs_update > 0:
-                sql_cmds.keep_curr(data[0], format_date, cdb)
-                rank_logger(data[0], rank_num, "Active")
+                sql_cmds.keep_curr(data[1], format_date, cdb)
+                rank_logger(data[1], rank_num, "Active")
 
         else:
             ldb = conn_lost.cursor()
@@ -54,7 +55,8 @@ def rank_tracker(name, rank_num):
             if check_lost:
                 rank_logger(name, rank_num, "Restore")
                 sql_cmds.restore_old(
-                    name, rank_num, format_date, check_lost[3], cdb
+                    name, rank_num, format_date, check_lost[4], check_lost[5],
+                    check_lost[6], check_lost[7], cdb
                 )
 
                 sql_cmds.delete_rank(name, ldb)
@@ -69,7 +71,6 @@ def rank_tracker(name, rank_num):
                     rank_logger(name, rank_num, "Addition")
                     sql_cmds.append_new(name, rank_num, format_date, cdb)
 
-        conn_main.commit()
-
+    conn_main.commit()
 
 rank_tracker(str(argv[1]), int(argv[2]))
